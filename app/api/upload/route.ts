@@ -22,23 +22,24 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-
-    // ✅ Utiliser un ID unique
     const fileId = randomUUID();
     const filename = `${fileId}.pdf`;
 
-    // ✅ S'assurer que le dossier existe
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    // ✅ Détection de l'environnement
+    const isProd = process.env.NODE_ENV === 'production';
+
+    // ✅ Dossier d'upload selon l'environnement
+    const uploadDir = isProd
+      ? path.join('/tmp') // Render autorisé
+      : path.join(process.cwd(), 'public', 'uploads'); // local
+
     if (!fs.existsSync(uploadDir)) {
       await mkdir(uploadDir, { recursive: true });
     }
 
     const uploadPath = path.join(uploadDir, filename);
-
-    // ✅ Enregistrer le fichier sur le disque
     await writeFile(uploadPath, buffer);
 
-    // ✅ Enregistrer les métadonnées dans la DB
     await db
       .insertInto('files')
       .values({
@@ -50,7 +51,6 @@ export async function POST(req: NextRequest) {
       })
       .execute();
 
-    // ✅ WebSocket (si activé)
     const io = (global as any).io;
     if (io) {
       io.emit('file-uploaded', {
