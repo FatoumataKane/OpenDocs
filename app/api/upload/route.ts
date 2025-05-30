@@ -27,15 +27,16 @@ export async function POST(req: NextRequest) {
 
     await writeFile(uploadPath, buffer);
 
-    await db
-      .insertInto('files')
-      .values({
-        id: fileId,
-        user_id: session.user.id,
-        name: filename,
-        original_name: file.name,
-      })
-      .execute();
+   await db
+  .insertInto('files')
+  .values({
+    id: fileId,
+    user_id: session.user.id,
+    name: filename,
+    original_name: file.name,
+    created_at: new Date(), 
+  })
+  .execute();
 
     // ✅ Émettre l'événement WebSocket
     const io = (global as any).io;

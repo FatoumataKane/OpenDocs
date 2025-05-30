@@ -8,7 +8,7 @@ import pdfParse from 'pdf-parse';
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
+  apiKey: process.env.OPENROUTER_API_KEY!,
 });
 
 export async function POST(req: NextRequest) {
@@ -19,6 +19,9 @@ export async function POST(req: NextRequest) {
     }
 
     const { fileId } = await req.json();
+    if (!fileId) {
+  return NextResponse.json({ error: 'fileId manquant' }, { status: 400 });
+}
 
     const file = await db
       .selectFrom('files')
