@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/authOptions';
 
 interface Props {
   params: { id: string };
