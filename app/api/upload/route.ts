@@ -3,8 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
 import { db } from '@/lib/db';
 import path from 'path';
-import { writeFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import { randomUUID } from 'crypto';
+import fs from 'fs';
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,27 +22,41 @@ export async function POST(req: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    // ✅ Utiliser un ID unique
     const fileId = randomUUID();
     const filename = `${fileId}.pdf`;
-    const uploadPath = path.join(process.cwd(), 'public/uploads', filename);
 
+    // ✅ S'assurer que le dossier existe
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      await mkdir(uploadDir, { recursive: true });
+    }
+
+    const uploadPath = path.join(uploadDir, filename);
+
+    // ✅ Enregistrer le fichier sur le disque
     await writeFile(uploadPath, buffer);
 
-   await db
-  .insertInto('files')
-  .values({
-    id: fileId,
-    user_id: session.user.id,
-    name: filename,
-    original_name: file.name,
-    created_at: new Date(), 
-  })
-  .execute();
+    // ✅ Enregistrer les métadonnées dans la DB
+    await db
+      .insertInto('files')
+      .values({
+        id: fileId,
+        user_id: session.user.id,
+        name: filename,
+        original_name: file.name,
+        created_at: new Date(),
+      })
+      .execute();
 
-    // ✅ Émettre l'événement WebSocket
+    // ✅ WebSocket (si activé)
     const io = (global as any).io;
     if (io) {
-      io.emit('file-uploaded', file.name);
+      io.emit('file-uploaded', {
+        fileName: file.name,
+        user: session.user.email,
+      });
     }
 
     return NextResponse.json({ success: true, id: fileId });
