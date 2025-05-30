@@ -1,42 +1,47 @@
-// app/api/ai/generate-text/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
-  }
-
   const { prompt } = await req.json();
 
+  if (!prompt) {
+    return NextResponse.json({ error: 'Prompt requis' }, { status: 400 });
+  }
+
   try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        'HTTP-Referer': 'https://opendocs.local', // remplace par ton domaine si besoin
+        'X-Title': 'OpenDOCS',
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
+        model: 'mistralai/mistral-7b-instruct:free',
+        messages: [
+          {
+            role: 'system',
+            content: 'Tu es un assistant intelligent pour rédiger du contenu textuel.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
       }),
     });
-    
 
     const data = await res.json();
-    console.log('✅ OpenAI response:', data);
+
+    console.log('🔍 OpenRouter response:', JSON.stringify(data, null, 2)); // 🔎 DEBUG LOG
 
     if (!data || !data.choices || !data.choices[0]?.message?.content) {
-      console.error('🔴 Mauvaise réponse OpenAI :', data);
-      return NextResponse.json({ error: 'Réponse IA vide ou incorrecte' }, { status: 500 });
+      return NextResponse.json({ error: 'Erreur de réponse AI' }, { status: 500 });
     }
 
     return NextResponse.json({ result: data.choices[0].message.content });
-  } catch (err) {
-    console.error('❌ Erreur API OpenAI :', err);
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+  } catch (error) {
+    console.error('❌ Erreur AI:', error);
+    return NextResponse.json({ error: 'Erreur serveur AI' }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Trash2, Eye, Download, Loader2, FileText } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface FileEntry {
   id: string;
@@ -13,7 +14,8 @@ interface FileEntry {
 export default function FilesPage() {
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/files')
@@ -22,24 +24,30 @@ export default function FilesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleDelete = async (id: string) => {
-    const confirmDelete = confirm('Voulez-vous vraiment supprimer ce fichier ?');
-    if (!confirmDelete) return;
+  const handleDelete = async () => {
+    if (!confirmingId) return;
+    const toastId = toast.loading('Suppression en cours...');
+    setDeletingId(confirmingId);
 
-    setDeleting(id);
     const res = await fetch('/api/files', {
       method: 'DELETE',
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id: confirmingId }),
       headers: {
         'Content-Type': 'application/json',
       },
     });
+
     const result = await res.json();
 
     if (result.success) {
-      setFiles((prev) => prev.filter((f) => f.id !== id));
+      toast.success('✅ Fichier supprimé avec succès', { id: toastId });
+      setFiles((prev) => prev.filter((f) => f.id !== confirmingId));
+    } else {
+      toast.error(`❌ Erreur : ${result.error || 'Erreur inconnue'}`, { id: toastId });
     }
-    setDeleting(null);
+
+    setDeletingId(null);
+    setConfirmingId(null);
   };
 
   return (
@@ -67,8 +75,11 @@ export default function FilesPage() {
                 <p className="font-medium text-gray-800 truncate max-w-[250px]">
                   {file.original_name}
                 </p>
-                <p className="text-xs text-gray-400">Ajouté le {new Date(file.created_at).toLocaleDateString()}</p>
+                <p className="text-xs text-gray-400">
+                  Ajouté le {new Date(file.created_at).toLocaleDateString()}
+                </p>
               </div>
+
               <div className="flex items-center gap-3">
                 <a
                   href={`/uploads/${file.name}`}
@@ -88,12 +99,11 @@ export default function FilesPage() {
                   <Download className="w-4 h-4" />
                 </a>
                 <button
-                  onClick={() => handleDelete(file.id)}
+                  onClick={() => setConfirmingId(file.id)}
                   className="text-red-600 hover:text-red-800"
                   title="Supprimer"
-                  disabled={deleting === file.id}
                 >
-                  {deleting === file.id ? (
+                  {deletingId === file.id ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Trash2 className="w-4 h-4" />
@@ -103,6 +113,30 @@ export default function FilesPage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* ✅ MODAL DE CONFIRMATION */}
+      {confirmingId && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full p-6 space-y-4 text-center animate-fade-in">
+            <h2 className="text-lg font-semibold text-gray-800">Confirmation</h2>
+            <p className="text-sm text-gray-500">Voulez-vous vraiment supprimer ce fichier ?</p>
+            <div className="flex justify-center gap-4 mt-4">
+              <button
+                onClick={() => setConfirmingId(null)}
+                className="px-4 py-2 rounded border border-gray-300 hover:bg-gray-100 text-gray-600"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white font-semibold"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

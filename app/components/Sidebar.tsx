@@ -30,7 +30,7 @@ const mainLinks = [
 
 const aiLinks = [
   { href: '/ai/summary', label: 'Résumé', icon: <FiZap /> },
-  { href: '/ai/extract-text', label: 'Extraction de texte', icon: <FiSearch /> },
+  // { href: '/ai/extract-text', label: 'Extraction de texte', icon: <FiSearch /> },
   { href: '/ai/generate-text', label: 'Génération de contenu', icon: <FiPenTool /> },
 ];
 

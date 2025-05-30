@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { FilePlus2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function UploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -12,7 +14,7 @@ export default function UploadPage() {
     if (file && file.type === 'application/pdf') {
       setSelectedFile(file);
     } else {
-      alert('Seuls les fichiers PDF sont acceptés.');
+      toast.error('❌ Seuls les fichiers PDF sont acceptés.');
     }
   };
 
@@ -21,48 +23,55 @@ export default function UploadPage() {
     if (file && file.type === 'application/pdf') {
       setSelectedFile(file);
     } else {
-      alert('Seuls les fichiers PDF sont acceptés.');
+      toast.error('❌ Seuls les fichiers PDF sont acceptés.');
     }
   };
 
   const handleUpload = async () => {
     if (!selectedFile) return;
 
+    setLoading(true);
+
     const formData = new FormData();
     formData.append('file', selectedFile);
 
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    });
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
-    const result = await res.json();
+      const result = await res.json();
 
-    if (result.success) {
-      alert('✅ Fichier téléversé avec succès !');
-      setSelectedFile(null); // Reset après envoi
-    } else {
-      alert(`❌ Erreur : ${result.error || 'Erreur inconnue'}`);
+      if (res.ok && result.success) {
+        toast.success('✅ Fichier téléversé avec succès !');
+        setSelectedFile(null);
+      } else {
+        toast.error(`❌ Erreur : ${result.error || 'Erreur inconnue'}`);
+      }
+    } catch (error) {
+      toast.error('❌ Erreur réseau ou serveur');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="relative min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-blue-50 to-indigo-100 font-sans overflow-hidden">
-      {/* 🖼 Illustration de fond */}
+      {/* Illustration de fond */}
       <img
         src="/illustration-upload.png"
         alt="upload illustration"
         className="absolute inset-0 w-full h-full object-contain opacity-25 pointer-events-none select-none"
       />
 
-      {/* 🧊 Contenu principal */}
       <div className="z-10 w-full max-w-xl bg-white/70 backdrop-blur-xl border border-gray-200 rounded-2xl shadow-xl p-8">
         <h1 className="text-3xl font-bold text-center text-gray-800 mb-6 flex items-center justify-center gap-3">
           <FilePlus2 className="w-7 h-7 text-blue-600" />
           Téléverser un document PDF
         </h1>
 
-        {/* 📤 Zone de drop */}
+        {/* Zone de drop */}
         <div
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
@@ -84,7 +93,7 @@ export default function UploadPage() {
           </label>
         </div>
 
-        {/* ✅ Affichage du fichier sélectionné */}
+        {/* Fichier sélectionné */}
         {selectedFile && (
           <>
             <div className="mt-6 flex items-center gap-4 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg shadow-sm animate-fade-in">
@@ -108,12 +117,12 @@ export default function UploadPage() {
               </div>
             </div>
 
-            {/* 🔘 BOUTON TÉLÉVERSER */}
             <button
               onClick={handleUpload}
-              className="mt-6 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition font-medium"
+              disabled={loading}
+              className="mt-6 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition font-medium disabled:opacity-50"
             >
-              Envoyer le fichier
+              {loading ? 'Téléversement...' : 'Envoyer le fichier'}
             </button>
           </>
         )}

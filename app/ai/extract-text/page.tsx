@@ -1,85 +1,52 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Loader2, FileSearch } from 'lucide-react';
-
-interface FileMeta {
-  id: string;
-  original_name: string;
-}
+import { useState } from 'react';
 
 export default function ExtractTextPage() {
-  const [files, setFiles] = useState<FileMeta[]>([]);
-  const [selectedId, setSelectedId] = useState('');
-  const [loading, setLoading] = useState(false);
   const [text, setText] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/files')
-      .then(res => res.json())
-      .then(data => setFiles(data));
-  }, []);
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || file.type !== 'application/pdf') return alert('Seuls les PDF sont autorisés.');
 
-  const handleExtract = async () => {
-    if (!selectedId) return;
+    const formData = new FormData();
+    formData.append('file', file);
+
     setLoading(true);
-    setText('');
+
     const res = await fetch('/api/ai/extract-text', {
       method: 'POST',
-      body: JSON.stringify({ fileId: selectedId }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      body: formData,
     });
+
     const data = await res.json();
-    setText(data.text || '');
     setLoading(false);
+
+    if (!res.ok || !data.text) {
+      alert('❌ Erreur lors de l’analyse PDF');
+      return;
+    }
+
+    setText(data.text);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 py-12 px-6 flex flex-col items-center font-sans">
-      <div className="bg-white rounded-xl p-8 shadow-md w-full max-w-3xl animate-fade-in">
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-6">
-          <FileSearch className="text-blue-600 w-6 h-6" />
-          Extraire le contenu d’un fichier PDF
-        </h1>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-16 bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-2xl space-y-6">
+        <h1 className="text-2xl font-bold text-center text-gray-800">📄 Extraire le texte d’un PDF</h1>
 
-        {/* Choix du fichier */}
-        <div className="mb-4">
-          <label className="block text-sm text-gray-600 mb-1">Choisissez un document :</label>
-          <select
-            className="w-full border px-4 py-2 rounded-md"
-            value={selectedId}
-            onChange={e => setSelectedId(e.target.value)}
-          >
-            <option value="">-- Sélectionner un fichier --</option>
-            {files.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.original_name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <input type="file" accept="application/pdf" onChange={handleUpload} className="block w-full" />
 
-        <button
-          onClick={handleExtract}
-          disabled={!selectedId || loading}
-          className="bg-blue-600 text-white px-5 py-2 rounded-md font-medium hover:bg-blue-700 transition disabled:opacity-50"
-        >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <Loader2 className="animate-spin w-4 h-4" />
-              Analyse en cours...
-            </span>
-          ) : (
-            'Extraire le texte'
-          )}
-        </button>
+        {loading && <p className="text-blue-600 font-medium text-center">Analyse en cours...</p>}
 
         {text && (
-          <div className="mt-8 bg-gray-50 border border-gray-200 p-4 rounded-md overflow-auto max-h-[400px] whitespace-pre-wrap text-sm text-gray-800">
-            {text}
-          </div>
+          <textarea
+            value={text}
+            rows={16}
+            className="w-full border border-gray-300 p-4 rounded-lg resize-none"
+            readOnly
+          />
         )}
       </div>
     </div>
