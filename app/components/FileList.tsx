@@ -6,7 +6,7 @@ import { ArrowRight, FileText, Loader2 } from 'lucide-react';
 interface File {
   id: string;
   original_name: string;
-  name: string; // ← utilisé pour ouvrir le fichier PDF
+  name: string;
   created_at: string;
 }
 
@@ -50,9 +50,9 @@ export default function FileList() {
             </p>
           </div>
 
-          {/* 🔗 Lien vers fichier PDF */}
+          {/* ✅ Corrigé pour production */}
           <a
-            href={`/uploads/${file.name}`}
+            href={`/api/view/${file.name}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 flex items-center gap-1 text-sm font-medium group-hover:underline"
