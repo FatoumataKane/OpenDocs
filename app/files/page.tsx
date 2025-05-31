@@ -82,7 +82,7 @@ export default function FilesPage() {
 
               <div className="flex items-center gap-3">
                 <a
-                  href={`/uploads/${file.name}`}
+                  href={`/api/view/${file.name}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline flex items-center gap-1 text-sm"
@@ -91,7 +91,7 @@ export default function FilesPage() {
                   <Eye className="w-4 h-4" />
                 </a>
                 <a
-                  href={`/uploads/${file.name}`}
+                  href={`/api/view/${file.name}`}
                   download={file.original_name}
                   className="text-green-600 hover:underline flex items-center gap-1 text-sm"
                   title="Télécharger"
@@ -115,7 +115,6 @@ export default function FilesPage() {
         </ul>
       )}
 
-      {/* ✅ MODAL DE CONFIRMATION */}
       {confirmingId && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-lg max-w-sm w-full p-6 space-y-4 text-center animate-fade-in">
